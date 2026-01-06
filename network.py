@@ -39,9 +39,12 @@ class Net:
         self.layers.append(Softmax())
         self.lay_num = len(self.layers)
 
-    def train(self, training_data, training_label, batch_size, epoch, weights_file):
+    def train(self, training_data, training_label, batch_size, epoch, weights_file, val_data=None, val_label=None):
         total_acc = 0
         total_samples = training_data.shape[0]  # 总样本数（如5500）
+        best_acc = 0
+        best_weights_file = weights_file.replace('.pkl', '_best.pkl')
+        
         for e in range(epoch):
             # 按批次迭代，步长为batch_size
             for batch_index in range(0, total_samples, batch_size):
@@ -95,14 +98,52 @@ class Net:
                         e, epoch, end_idx, loss, batch_acc, training_acc, hrs, mins, secs
                     )
                 )
+            
+            # 每个epoch后进行验证
+            if val_data is not None and val_label is not None:
+                val_acc = self.validate(val_data, val_label)
+                print('=== Epoch: {0:d}/{1:d} === Validation Acc: {2:.2f} ==='.format(e, epoch, val_acc))
+                
+                # 如果验证准确率更好，保存最优模型
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    obj = []
+                    for i in range(self.lay_num):
+                        cache = self.layers[i].extract()
+                        obj.append(cache)
+                    with open(best_weights_file, 'wb') as handle:
+                        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    print('*** Best model saved! Accuracy: {0:.2f} ***'.format(best_acc))
 
-        # 保存权重（保持不变）
+        # 保存最终权重
         obj = []
         for i in range(self.lay_num):
             cache = self.layers[i].extract()
             obj.append(cache)
         with open(weights_file, 'wb') as handle:
             pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        print('*** Final model saved! ***')
+
+    def validate(self, val_data, val_label):
+        """验证模型准确率（不进行反向传播）"""
+        val_size = val_data.shape[0]
+        total_acc = 0
+        
+        for i in range(val_size):
+            x = val_data[i]
+            y = val_label[i]
+            
+            # 前向传播
+            for l in range(self.lay_num):
+                output = self.layers[l].forward(x)
+                x = output
+            
+            # 计算准确率
+            if np.argmax(output) == np.argmax(y):
+                total_acc += 1
+        
+        val_acc = float(total_acc) / float(val_size)
+        return val_acc
 
     # 以下test、test_with_pretrained_weights、predict_with_pretrained_weights方法保持不变
     def test(self, data, label, test_size):

@@ -6,12 +6,12 @@ class ConvolutionLayer:
         """
         num_filters:     卷积核个数
         inputs_channel:  通道个数
-        width：          卷积核宽
-        height：         卷积核高
-        stride：         卷积核步长
-        padding：        输入填充宽度
-        learning_rate:  学习率
-        name:           卷积层名字
+        width:           卷积核宽
+        height:          卷积核高
+        stride:          卷积核步长
+        padding:         输入填充宽度
+        learning_rate:   学习率
+        name:            卷积层名字
         """
         self.num_filters = num_filters
         self.channel = inputs_channel
